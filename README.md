@@ -1,4 +1,4 @@
-# 📝 Smart Notes Pro App
+#  Smart Notes Pro App
 
 A simple and interactive **Smart Notes web application** built using **HTML, CSS, and JavaScript**, combining **VibeCoding-generated UI** with **manual feature implementation**.
 ---
