@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Smart Notes App</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+      transition: 0.3s;
+    }
+
+    body.dark {
+      background: #121212;
+      color: white;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+
+    input, textarea, button, select {
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 80px;
+    }
+
+    .notes {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .note {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      position: relative;
+    }
+
+    body.dark .note {
+      background: #1e1e1e;
+    }
+
+    .note button {
+      margin-right: 5px;
+    }
+
+    .pinned {
+      border: 2px solid gold;
+    }
+
+    mark {
+      background: yellow;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>📝 Smart Notes App</h1>
+
+  <div class="controls">
+    <input type="text" id="search" placeholder="Search notes..." />
+    <select id="sort">
+      <option value="newest">Newest</option>
+      <option value="oldest">Oldest</option>
+    </select>
+    <button onclick="toggleTheme()">🌙 Toggle Theme</button>
+  </div>
+
+  <textarea id="noteText" placeholder="Write your note..."></textarea>
+  <br><br>
+  <button onclick="addNote()">➕ Add Note</button>
+
+  <hr><br>
+
+  <div class="notes" id="notes"></div>
+
+  <script>
+    let notes = JSON.parse(localStorage.getItem("notes")) || [];
+    let searchText = "";
+
+    function fakeAI(text) {
+      return {
+        summary: text.slice(0, 30) + "...",
+        tags: ["note", "personal"],
+        mood: text.includes("happy") ? "😊 Happy" : "😐 Neutral"
+      };
+    }
+
+    function saveNotes() {
+      localStorage.setItem("notes", JSON.stringify(notes));
+    }
+
+    function addNote() {
+  const textarea = document.getElementById("noteText");
+  const text = textarea.value.trim();
+
+  console.log("Clicked Add Note:", text);
+
+  if (text === "") {
+    alert("Please write something first!");
+    return;
+  }
+
+  const ai = fakeAI(text);
+
+  const note = {
+    id: Date.now(),
+    text: text,
+    createdAt: Date.now(),
+    pinned: false,
+    ai: ai
+  };
+
+  notes.push(note);
+  saveNotes();
+  textarea.value = "";
+  renderNotes();
+}
+
+    function deleteNote(id) {
+      notes = notes.filter(n => n.id !== id);
+      saveNotes();
+      renderNotes();
+    }
+
+    function togglePin(id) {
+      const note = notes.find(n => n.id === id);
+      note.pinned = !note.pinned;
+      saveNotes();
+      renderNotes();
+    }
+
+    function editNote(id) {
+      const note = notes.find(n => n.id === id);
+      const newText = prompt("Edit note:", note.text);
+      if (newText) {
+        note.text = newText;
+        note.ai = fakeAI(newText);
+        saveNotes();
+        renderNotes();
+      }
+    }
+
+    function highlight(text) {
+      if (!searchText) return text;
+      const reg = new RegExp(`(${searchText})`, "gi");
+      return text.replace(reg, "<mark>$1</mark>");
+    }
+
+    function renderNotes() {
+      const container = document.getElementById("notes");
+      container.innerHTML = "";
+
+      const sortValue = document.getElementById("sort").value;
+
+      let sorted = [...notes].sort((a, b) =>
+        sortValue === "newest"
+          ? b.createdAt - a.createdAt
+          : a.createdAt - b.createdAt
+      );
+
+      const pinned = sorted.filter(n => n.pinned);
+      const normal = sorted.filter(n => !n.pinned);
+
+      [...pinned, ...normal].forEach(note => {
+        if (!note.text.toLowerCase().includes(searchText)) return;
+
+        const div = document.createElement("div");
+        div.className = "note" + (note.pinned ? " pinned" : "");
+
+        div.innerHTML = `
+          <p>${highlight(note.text)}</p>
+          <small>
+            <b>Summary:</b> ${note.ai.summary}<br>
+            <b>Tags:</b> ${note.ai.tags.join(", ")}<br>
+            <b>Mood:</b> ${note.ai.mood}
+          </small><br><br>
+          <button onclick="editNote(${note.id})">✏️</button>
+          <button onclick="deleteNote(${note.id})">🗑️</button>
+          <button onclick="togglePin(${note.id})">📌</button>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById("search").addEventListener("input", e => {
+      searchText = e.target.value.toLowerCase();
+      renderNotes();
+    });
+
+    document.getElementById("sort").addEventListener("change", renderNotes);
+
+    function toggleTheme() {
+      document.body.classList.toggle("dark");
+    }
+
+    renderNotes();
+  </script>
+</body>
+</html>
